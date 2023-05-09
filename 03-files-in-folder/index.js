@@ -1,30 +1,41 @@
 const fs = require('fs');
-const pach = require('path');
+const path = require('path');
 
-const dirPach = pach.join(__dirname, 'secret-folder');
-console.log(dirPach);
+const dirPath = path.join(__dirname, 'secret-folder');
 
-// объявляем переменную filterFiles до функции fs.readdir
-let filterFiles;
+// читаем содержимое директории асинхронно
+fs.readdir(dirPath, (err, files) => {
+  if (err) {
+    console.error(`Ошибка чтения директории: ${err}`);
+    return;
+  }
 
-// считываем информацию с директории secret-folder
-fs.readdir(dirPach, (err, files) => {
-    if (err) {
-        console.error(`Ошибка чтения дериктории: ${err}`);
-        return;
-    }
-    //фильтруем файлы по расширению
-    filterFiles = files.filter((fileName) => {
-        const filePach = pach.join(dirPach, fileName);
-        return fs.statSync(filePach).isFile() && pach.extname(filePach) !== '';
+  // фильтруем только файлы
+  const promises = files.map(fileName => {
+    const filePath = path.join(dirPath, fileName);
+    return new Promise((resolve, reject) => {
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          console.error(`Ошибка чтения файла: ${err}`);
+          resolve(false);
+        }
+        resolve(stats.isFile() && path.extname(filePath) !== '');
+      });
     });
+  });
 
-    // проходимся по каждому отфильтрованному файлу и выводим информацию о нем
-    filterFiles.forEach(fileName => {
-        const name = pach.basename(fileName, pach.extname(fileName))
-        const filePach = pach.join(dirPach, fileName);
-        const fileInBt = fs.statSync(filePach).size;
-        const fileInKb = fileInBt / 1024.0;
-        console.log(`${name} - ${pach.extname(filePach).slice(1)} - ${fileInKb}Kb`);
+  Promise.all(promises).then(results => {
+    const filteredFiles = files.filter((fileName, index) => results[index]);
+
+    // выводим информацию о каждом файле
+    filteredFiles.forEach(fileName => {
+      const filePath = path.join(dirPath, fileName);
+      const fileExt = path.extname(filePath).slice(1);
+      const fileSizeInBytes = fs.statSync(filePath).size;
+      const fileSizeInKb = fileSizeInBytes / 1024;
+      console.log(`${path.basename(filePath, path.extname(filePath))} - ${fileExt} - ${fileSizeInKb} Kb`);
     });
+  }).catch(err => {
+    console.error(`Ошибка при фильтрации файлов: ${err}`);
+  });
 });

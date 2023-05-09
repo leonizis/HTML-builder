@@ -4,25 +4,49 @@ const stylesDir = path.join(__dirname, 'styles');
 const distDir = path.join(__dirname, 'project-dist');
 
 // Получаем список файлов в папке styles
-const files = fs.readdirSync(stylesDir);
+fs.readdir(stylesDir, (err, files) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  
+  // Фильтруем файлы по расширению .css
+  const cssFiles = files.filter(file => path.extname(file) === '.css');
 
-// Фильтруем файлы по расширению .css
-const cssFiles = files.filter(file => path.extname(file) === '.css');
-
-// Собираем содержимое всех файлов в одну строку
-const cssContent = cssFiles.reduce((acc, file) => {
-  const filePath = path.join(stylesDir, file);
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  return acc + fileContent;
-}, '');
-
-// Создаем папку dist, если ее еще нет
-if (!fs.existsSync(distDir)) {
-  fs.mkdirSync(distDir);
-}
-
-// Записываем содержимое в файл bundle.css в папке dist
-fs.writeFileSync(path.join(distDir, 'bundle.css'), cssContent);
-
-
-console.log('записано');
+  // Собираем содержимое всех файлов в одну строку
+  let cssContent = '';
+  let count = 0;
+  cssFiles.forEach(file => {
+    const filePath = path.join(stylesDir, file);
+    fs.readFile(filePath, 'utf-8', (err, fileContent) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      
+      cssContent += fileContent;
+      count++;
+      
+      // Проверяем, что все файлы прочитаны, прежде чем записывать содержимое в файл
+      if (count === cssFiles.length) {
+        // Создаем папку dist, если ее еще нет
+        fs.mkdir(distDir, { recursive: true }, (err) => {
+          if (err) {
+            console.error(err);
+            return;
+          }
+          
+          // Записываем содержимое в файл bundle.css в папке dist
+          fs.writeFile(path.join(distDir, 'bundle.css'), cssContent, (err) => {
+            if (err) {
+              console.error(err);
+              return;
+            }
+            
+            console.log('записано');
+          });
+        });
+      }
+    });
+  });
+});

@@ -1,12 +1,11 @@
 const fs = require('fs');
-const pach = require('path');
+const path = require('path');
 
-const failPach = pach.join(__dirname, 'text.txt');
+const textPath = path.join(__dirname, 'text.txt');
+const readStream = fs.createReadStream(textPath, {encoding: 'utf-8'});
 
-fs.readFile(failPach, 'utf8', (err, data) => {
-    if (!err){
-        console.log(data)
-    }
+readStream.on('data', (chunk) => {
+    console.log(chunk.toString());
 })
 
 
