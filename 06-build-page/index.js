@@ -137,44 +137,51 @@ fs.access(dirPath, (err) => {
       });
     }
     // читаем что внутри файла
-    fs.readFile(templatePath, 'utf-8', (err, templateContent) => {
-      if (err) {
-        return console.error(err);
-      }
-
-      // получаем список всех файлов в папке components
-      const componentsFiles = fs.readdirSync(dirComponents).filter(file => path.extname(file) === '.html')
-
-      // копируем файл темплейт и заменяем содержимое на нужные блоки
-      let updatedContent = templateContent;
-      componentsFiles.forEach(componentFile => {
-        const componentPath = path.join(dirComponents, componentFile);
-        fs.readFile(componentPath, 'utf8', (err, componentContent) => {
+    const createIndexFile = (templatePath, dirComponents, dirPath) => {
+      fs.readFile(templatePath, 'utf-8', (err, templateContent) => {
+        if (err) {
+          return console.error(err);
+        }
+    
+        fs.readdir(dirComponents, (err, files) => {
           if (err) {
             return console.error(err);
           }
-
-          const templateTag = `{{${path.basename(componentFile, '.html')}}}`;
-          updatedContent = updatedContent.replace(new RegExp(templateTag, 'g'), componentContent);
-
-          // если это последний компонент, то сохраняем файл index.html
-          if (componentsFiles.indexOf(componentFile) === componentsFiles.length - 1) {
-            // записываем обновленный шаблон в файл index.html в папке project-dist
-            fs.mkdir(dirPath, { recursive: true }, (err) => {
+    
+          const componentsFiles = files.filter(file => path.extname(file) === '.html');
+          let updatedContent = templateContent;
+    
+          componentsFiles.forEach((componentFile, index) => {
+            const componentPath = path.join(dirComponents, componentFile);
+            fs.readFile(componentPath, 'utf8', (err, componentContent) => {
               if (err) {
                 return console.error(err);
               }
-              fs.writeFile(indexFile, updatedContent, (err) => {
-                if (err) {
-                  return console.error(err);
-                }
-                console.log('Файл успешно создан');
-              });
+    
+              const templateTag = `{{${path.basename(componentFile, '.html')}}}`;
+              updatedContent = updatedContent.replace(new RegExp(templateTag, 'g'), componentContent);
+    
+              if (index === componentsFiles.length - 1) {
+                fs.mkdir(dirPath, { recursive: true }, (err) => {
+                  if (err) {
+                    return console.error(err);
+                  }
+    
+                  const indexFile = path.join(dirPath, 'index.html');
+                  fs.writeFile(indexFile, updatedContent, (err) => {
+                    if (err) {
+                      return console.error(err);
+                    }
+    
+                    console.log('Файл успешно создан');
+                  });
+                });
+              }
             });
-          }
+          });
         });
       });
-    });
+    };
   });
 });
 
